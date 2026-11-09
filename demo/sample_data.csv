@@ -1,0 +1,13 @@
+age,income,hours,city,plan
+23,42000,38,Adelaide,basic
+35,,40,Melbourne,premium
+41,68000,45,Adelaide,premium
+29,39000,NA,Sydney,basic
+52,91000,50,Melbourne,
+33,55000,37,Sydney,basic
+47,,42,Adelaide,premium
+38,73000,41,Brisbane,standard
+26,36000,35,Sydney,basic
+60,98000,48,Melbourne,premium
+31,,39,,standard
+44,82000,43,Adelaide,standard
