@@ -1,5 +1,17 @@
 __all__ = ["Pipeline"]
 
+"""
+## `pipeline.py`
+- Must support `partial_fit()` for models and transformers
+- Support incremental transformation + prediction in chained pipeline
+```python
+pipe = Pipeline([
+('scale', StandardScaler()),
+('model', DecisionTreeClassifier(max_depth=5, buffer_size=500))
+])
+pipe.partia
+"""
+
 class Pipeline:
     """
     Input:

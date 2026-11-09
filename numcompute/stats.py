@@ -7,6 +7,15 @@ Descriptive statistics and a streaming mean/variance, numpy only.
 - nan_policy: 'propagate' (NaN in -> NaN out), 'omit' (skip NaN) or 'raise'
 - axis=None reduces everything, keepdims=True keeps reduced axes as length 1
 """
+
+"""
+### `stats.py`
+- All statistical functions redesigned for streaming
+- Implement chunk-based versions of:
+- Mean, variance, quantiles
+- Histograms (optionally with sliding window)
+- Add `up
+"""
 import warnings
 
 import numpy as np

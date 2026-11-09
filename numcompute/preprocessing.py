@@ -10,6 +10,14 @@ Feature scaling, encoding and imputation.
 - no python loops, all vectorized
 """
 
+"""
+### `preprocessing.py`
+- Scalers (e.g., `StandardScaler`) must support `.partial_fit()`:
+- Maintain running mean/var (e.g., Welford or EMA)
+- `Imputer` updates missing-value estimates on the fly
+- `OneHotEncod
+"""
+
 from __future__ import annotations
 
 import numpy as np
