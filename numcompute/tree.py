@@ -53,8 +53,9 @@ class Node:
         self.label = label                # set only on a leaf
 
 class DecisionTree:
-    def __init__(self, max_depth=2, criterion="gini"):
+    def __init__(self, max_depth=2, max_buffer=500, criterion="gini"):
         self.max_depth = max_depth
+        self.max_buffer = max_buffer
         self.impurity = gini if criterion == "gini" else entropy
     def _gain(self, y, mask):
         """Information gain: impurity before the question minus after it."""
@@ -87,6 +88,21 @@ class DecisionTree:
     def fit(self, X, y):
         self.root = self._build(np.asarray(X), np.asarray(y), 0)
         return self
+    def partial_fit(self, X_chunk, y_chunk): 
+
+        ### Append X Chunk to feature buffer
+
+        ### Append y chunk to label buffer 
+
+        ### if buffer sample count >= buffer size 
+
+            ### fit(buffered_X, buffered_y)
+
+            ### Clear both buffers 
+        
+        ### return self
+
+
     def predict(self, X):
         out = []
         for x in np.asarray(X):
