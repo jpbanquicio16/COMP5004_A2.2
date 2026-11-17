@@ -6,7 +6,7 @@ Features are yes/no (1/0) columns, as in the course tree.
 import numpy as np
 import pytest
 
-from numcompute.tree import DecisionTreeClassifier, NotFittedError, entropy, gini
+from numcompute.tree import DecisionTreeClassifier, NotFittedError, TreeArrays, entropy, gini
 
 # the course's twelve students: submitted, attended, study_group -> passed
 STUDENTS = np.array([
@@ -29,8 +29,9 @@ def make_data(n=400, seed=0, flip=0.05):
 # ---------------- impurity ----------------
 
 def test_gini_pure_and_even():
-    assert gini(np.array([1, 1, 1])) == 0.0
-    assert gini(np.array([0, 1, 0, 1])) == pytest.approx(0.5)
+    # impurity functions take class COUNTS (class axis last), not labels
+    assert gini(np.array([3, 0])) == 0.0
+    assert gini(np.array([2, 2])) == pytest.approx(0.5)
 
 
 def test_entropy_pure_and_even():
@@ -44,7 +45,12 @@ def test_impurity_empty_is_zero():
 
 
 def test_course_numbers_for_twelve_students():
-    assert gini(YS) == pytest.approx(1 - ((7 / 12) ** 2 + (5 / 12) ** 2))
+    assert gini(np.bincount(YS)) == pytest.approx(1 - ((7 / 12) ** 2 + (5 / 12) ** 2))
+
+
+def test_impurity_works_on_a_grid_of_counts():
+    grid = np.array([[[3, 0], [2, 2]], [[0, 0], [1, 3]]])        # (2, 2, k=2)
+    np.testing.assert_allclose(gini(grid), [[0, 0.5], [0, 0.375]])
 
 
 # ---------------- fit / predict ----------------
@@ -55,10 +61,20 @@ def test_fit_returns_self_and_predict_shape():
     assert t.predict(XS).shape == (12,)
 
 
+def child_for(tr, node, value):
+    """Index of the child of `node` that a single value is routed to."""
+    if np.isnan(value):
+        return tr.left[node] if tr.nan_left[node] else tr.right[node]
+    return tr.left[node] if value <= tr.threshold[node] else tr.right[node]
+
+
 def test_course_tree_root_is_submitted_then_attended():
     t = DecisionTreeClassifier(max_depth=2).fit(XS, YS)
-    assert t.root.feature == 0
-    assert t.root.left.feature == 1
+    assert t.tree_.feature[0] == 0                  # submitted?
+    submitted, not_submitted = child_for(t.tree_, 0, 1), child_for(t.tree_, 0, 0)
+    assert t.tree_.feature[submitted] == 1          # ... then attended?
+    assert t.tree_.is_leaf[not_submitted]           # everyone here failed
+    assert t.tree_.counts[not_submitted].tolist() == [5, 0]
 
 
 def test_course_tree_gets_only_the_fluke_wrong():
@@ -201,7 +217,8 @@ def test_nan_goes_to_side_with_better_gain():
     X = np.array([[1], [1], [1], [0], [0], [0], [np.nan], [np.nan]])
     y = np.array([1, 1, 1, 0, 0, 0, 1, 1])        # NaN rows look like "yes"
     t = DecisionTreeClassifier(max_depth=1).fit(X, y)
-    assert t.root.nan_left is True
+    # NaN is routed to the same child as the 1s
+    assert child_for(t.tree_, 0, np.nan) == child_for(t.tree_, 0, 1.0)
     assert t.predict(np.array([[np.nan]]))[0] == 1
 
 
@@ -209,7 +226,8 @@ def test_nan_goes_right_when_it_looks_like_no():
     X = np.array([[1], [1], [1], [0], [0], [0], [np.nan], [np.nan]])
     y = np.array([1, 1, 1, 0, 0, 0, 0, 0])
     t = DecisionTreeClassifier(max_depth=1).fit(X, y)
-    assert t.root.nan_left is False
+    # NaN is routed to the same child as the 0s
+    assert child_for(t.tree_, 0, np.nan) == child_for(t.tree_, 0, 0.0)
     assert t.predict(np.array([[np.nan]]))[0] == 0
 
 
@@ -229,7 +247,7 @@ def test_all_nan_feature_gives_no_split():
 def test_all_nan_feature_ignored_when_other_is_useful():
     X = np.column_stack([np.full(8, np.nan), [1, 1, 1, 1, 0, 0, 0, 0]])
     y = np.array([1, 1, 1, 1, 0, 0, 0, 0])
-    assert DecisionTreeClassifier(max_depth=1).fit(X, y).root.feature == 1
+    assert DecisionTreeClassifier(max_depth=1).fit(X, y).tree_.feature[0] == 1
 
 
 def test_constant_feature_no_split():
@@ -252,7 +270,52 @@ def test_identical_rows_conflicting_labels():
 def test_tied_gain_picks_first_feature():
     X = np.array([[1, 1], [1, 1], [0, 0], [0, 0]])
     y = np.array([1, 1, 0, 0])
-    assert DecisionTreeClassifier(max_depth=1).fit(X, y).root.feature == 0
+    assert DecisionTreeClassifier(max_depth=1).fit(X, y).tree_.feature[0] == 0
+
+
+# ---------------- tree_ (read-only node arrays) ----------------
+
+def test_tree_arrays_shapes_are_consistent():
+    X, y = make_data()
+    tr = DecisionTreeClassifier(max_depth=3).fit(X, y).tree_
+    assert isinstance(tr, TreeArrays)
+    n = tr.n_nodes
+    assert all(len(a) == n for a in (tr.feature, tr.threshold, tr.nan_left, tr.left, tr.right))
+    assert tr.counts.shape == (n, 2)
+    inner = ~tr.is_leaf
+    # every split node's children hold exactly its samples
+    np.testing.assert_array_equal(tr.counts[tr.left[inner]] + tr.counts[tr.right[inner]],
+                                  tr.counts[inner])
+    assert (tr.left[inner] > np.flatnonzero(inner)).all()
+    assert (tr.left[tr.is_leaf] == -1).all() and np.isnan(tr.threshold[tr.is_leaf]).all()
+
+
+def test_tree_is_read_only():
+    t = DecisionTreeClassifier().fit(XS, YS)
+    with pytest.raises(AttributeError):
+        t.tree_ = None
+    with pytest.raises(ValueError):
+        t.tree_.threshold[0] = 99.0
+    assert t.tree_.threshold[0] == 0.5
+
+
+def test_tree_before_fit():
+    with pytest.raises(NotFittedError):
+        DecisionTreeClassifier().tree_
+
+
+@pytest.mark.parametrize("cells", [1, 50, 10_000])
+def test_blocked_split_search_builds_the_same_tree(cells):
+    rng = np.random.default_rng(7)
+    X = rng.normal(size=(300, 9))
+    X[::11, 3] = np.nan
+    y = (X[:, 0] + np.nan_to_num(X[:, 3]) > 0).astype(int) + (X[:, 5] > 1)
+    full = DecisionTreeClassifier(max_depth=4).fit(X, y).tree_
+    small = DecisionTreeClassifier(max_depth=4)
+    small.max_split_cells = cells                     # forces feature blocks
+    blocked = small.fit(X, y).tree_
+    for a, b in zip(full, blocked):
+        np.testing.assert_array_equal(a, b)
 
 
 # ---------------- streaming ----------------
@@ -271,7 +334,9 @@ def test_partial_fit_retrains_and_clears_buffer():
     t = DecisionTreeClassifier(buffer_size=200)
     t.partial_fit(X[:100], y[:100]).partial_fit(X[100:200], y[100:200])
     assert t.is_fitted and t.buffer_count_ == 0 and t.n_retrains_ == 1
-    assert t.X_buffer is None and t.y_buffer is None
+    assert t.tree_.counts[0].sum() == 200            # trained on exactly the buffer
+    t.partial_fit(X[200:250], y[200:250])
+    assert t.buffer_count_ == 50 and t.n_retrains_ == 1  # buffer restarted empty
 
 
 def test_single_big_chunk_triggers_retrain():
@@ -331,9 +396,11 @@ def test_chunk_validation():
 
 def test_partial_fit_copies_chunk():
     X = np.zeros((4, 1))
-    t = DecisionTreeClassifier(buffer_size=100).partial_fit(X, np.zeros(4, dtype=int))
-    X[:] = 9
-    assert t.X_buffer.max() == 0
+    t = DecisionTreeClassifier(buffer_size=8).partial_fit(X, np.zeros(4, dtype=int))
+    X[:] = 9                                         # caller reuses its array
+    t.partial_fit(np.ones((4, 1)), np.ones(4, dtype=int))
+    # the retrain saw the original zeros, so the split is between 0 and 1
+    assert t.tree_.threshold[0] == 0.5
 
 
 def test_chunk_with_nan():
