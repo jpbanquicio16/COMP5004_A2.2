@@ -1,20 +1,25 @@
 # Tree benchmarks
 
-## (a) Loop vs vectorised (max_depth=5, 20 yes/no features)
+Python 3.12.13, NumPy 1.26.4, best of 3 runs.
 
-| n_train | fit loop (s) | fit vec (s) | fit speed-up | predict loop (s) | predict vec (s) | predict speed-up | prediction agreement |
-|---|---|---|---|---|---|---|---|
-| 200 | 0.0068 | 0.0048 | 1.4x | 0.0066 | 0.00108 | 6.1x | 1.000 |
-| 1000 | 0.0312 | 0.0105 | 3.0x | 0.0074 | 0.00124 | 5.9x | 1.000 |
-| 5000 | 0.1161 | 0.0151 | 7.7x | 0.0066 | 0.00130 | 5.1x | 1.000 |
+## (a) Loop vs vectorised (max_depth=5; 20 yes/no features or 10 Gaussian features, 3 classes; predict on 20,000 rows)
 
-## (b) buffer_size sweep (20,000-sample stream, 50-row chunks, concept flips at the midpoint)
+| data | n_train | fit loop (ms) | fit vec (ms) | fit speed-up | predict loop (ms) | predict vec (ms) | predict speed-up | identical tree + predictions |
+|---|---|---|---|---|---|---|---|---|
+| 0/1 | 200 | 32.5 | 5.2 | 6.2x | 105.1 | 2.1 | 49.7x | yes (100%) |
+| 0/1 | 1000 | 134.5 | 24.0 | 5.6x | 115.6 | 2.1 | 55.8x | yes (100%) |
+| 0/1 | 5000 | 655.2 | 114.6 | 5.7x | 117.9 | 2.2 | 53.7x | yes (100%) |
+| continuous | 200 | 178.9 | 4.4 | 41.1x | 107.8 | 1.9 | 58.2x | yes (100%) |
+| continuous | 1000 | 978.6 | 17.4 | 56.2x | 115.0 | 1.8 | 62.7x | yes (100%) |
+| continuous | 3000 | 2847.4 | 46.9 | 60.8x | 115.5 | 2.0 | 58.6x | yes (100%) |
 
-| buffer_size | retrains | total retrain time (s) | time / retrain (s) | prequential accuracy |
-|---|---|---|---|---|
-| 50 | 400 | 0.7065 | 0.00177 | 0.795 |
-| 100 | 200 | 0.5695 | 0.00285 | 0.815 |
-| 250 | 80 | 0.3669 | 0.00459 | 0.851 |
-| 500 | 40 | 0.2378 | 0.00595 | 0.900 |
-| 1000 | 20 | 0.1537 | 0.00768 | 0.892 |
-| 2500 | 8 | 0.0812 | 0.01015 | 0.844 |
+## (b) buffer_size sweep (20,000-row stream, 50-row chunks, label rule changes at row 10,000; mean of 5 seeds)
+
+| buffer_size | retrains | total retrain time (s) | time / retrain (ms) | prequential accuracy | peak model memory (KB) | rows to recover after change |
+|---|---|---|---|---|---|---|
+| 50 | 400 | 0.544 | 1.4 | 0.796 | 1.6 | 60 |
+| 100 | 200 | 0.545 | 2.7 | 0.818 | 10.3 | 110 |
+| 250 | 80 | 0.534 | 6.7 | 0.855 | 35.3 | 350 |
+| 500 | 40 | 0.535 | 13.4 | 0.898 | 76.6 | 550 |
+| 1000 | 20 | 0.533 | 26.6 | 0.892 | 158.8 | 1000 |
+| 2500 | 8 | 0.487 | 60.9 | 0.844 | 405.0 | 2500 |
