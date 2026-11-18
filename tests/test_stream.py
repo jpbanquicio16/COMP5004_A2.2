@@ -253,7 +253,7 @@ def test_to_csv_round_trip(tmp_path):
 
 def test_logging_reports_chunks_and_retrains(caplog):
     X, y = make_stream(600)
-    with caplog.at_level(logging.INFO, logger="numcompute.stream"):
+    with caplog.at_level(logging.INFO, logger="numcompute_stream.stream"):
         StreamTrainer(tree_pipe(buffer_size=200), log_every=100).run(chunks(X, y, 100))
     text = caplog.text
     assert "chunk    0" in text and text.count("| retrain") == 3 and "done: 6 chunks" in text
