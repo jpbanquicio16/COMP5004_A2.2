@@ -51,11 +51,16 @@ def softmax(x, axis=-1):
     return e / np.sum(e, axis=axis, keepdims=True)
 
 
-def logsumexp(a, axis=None):
+def logsumexp(a, axis=None, keepdims=False):
+    """Stable log(sum(exp(a))) along ``axis``. Handles +/-inf; NaN propagates."""
     a = np.asarray(a, dtype=float)
-    largest = np.max(a, axis=axis, keepdims=True)
-    total = np.sum(np.exp(a - largest), axis=axis, keepdims=True)
-    return np.squeeze(np.log(total) + largest, axis=axis) # following the formula
+    largest = np.max(a, axis=axis, keepdims=True)       # raises on empty input
+    shift = np.where(np.isfinite(largest), largest, 0.0)  # avoid inf - inf
+    total = np.sum(np.exp(a - shift), axis=axis, keepdims=True)
+    with np.errstate(divide="ignore"):                  # all -inf -> log(0) = -inf
+        out = np.log(total) + shift
+    return out if keepdims else np.squeeze(out, axis=axis)
+
 
 def batch_indices(n_samples, batch_size, shuffle=False, seed=None):
     if batch_size < 1:

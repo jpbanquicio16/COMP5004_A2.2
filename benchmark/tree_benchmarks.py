@@ -17,44 +17,104 @@ from numcompute.tree import DecisionTreeClassifier
 
 
 # ---------------------------------------------------------------------------
-# loop-based baseline: same algorithm, plain Python loops over features,
-# thresholds and samples (NaN handling omitted: benchmark data has no NaN)
+# loop-based baselines: same algorithms as the vectorised library code, written
+# with plain Python loops over features, thresholds and samples. They must give
+# identical results (tests/test_loop_tree.py), so the speed comparison is fair.
 # ---------------------------------------------------------------------------
 
 class LoopDecisionTree(DecisionTreeClassifier):
-    """The course's original style: Python loops over rows for gain and predict."""
+    """Gini tree whose split search and predict use Python loops.
 
-    def _best_feature(self, X, y):
-        n = len(y)
-        k = int(y.max()) + 1
-        best_f, best_gain = None, 0.0
-        for f in range(X.shape[1]):
-            yes, no = np.zeros(k), np.zeros(k)
-            for r in range(n):                       # count classes row by row
-                (yes if X[r, f] == 1 else no)[y[r]] += 1
-            if yes.sum() == 0 or no.sum() == 0:
-                continue
-            total = yes + no
-            before = 1.0 - sum((c / n) ** 2 for c in total)
-            gl = 1.0 - sum((c / yes.sum()) ** 2 for c in yes)
-            gr = 1.0 - sum((c / no.sum()) ** 2 for c in no)
-            gain = before - (yes.sum() * gl + no.sum() * gr) / n
-            if gain > best_gain:
-                best_f, best_gain = f, gain
-        return best_f, False
+    Same tie rules as the vectorised tree: stable sort (NaN last), thresholds
+    scanned in ascending order, NaN-right before NaN-left, first best wins.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.criterion != "gini":
+            raise ValueError("LoopDecisionTree supports criterion='gini' only")
+
+    def _best_split_block(self, X, yi, k, feats):
+        n = yi.shape[0]
+        total = np.zeros(k)
+        for label in yi:                                  # class counts, sample by sample
+            total[label] += 1
+        parent = float(self._impurity(total))
+        best = None                                       # (score, f, pos, option)
+        for fi, f in enumerate(feats):
+            col = X[:, f]
+            order = np.argsort(col, kind="stable")        # NaN sorts last
+            nan_cnt = np.zeros(k)
+            for r in range(n):
+                if np.isnan(col[r]):
+                    nan_cnt[yi[r]] += 1
+            has_nan = nan_cnt.sum() > 0
+            left = np.zeros(k)
+            f_best = None                                 # (score, pos, option)
+            for pos in range(n - 1):
+                left[yi[order[pos]]] += 1
+                lo, hi = col[order[pos]], col[order[pos + 1]]
+                if not lo < hi:                           # tie or NaN: no threshold here
+                    continue
+                for option in ((0, 1) if has_nan else (0,)):
+                    L = left + nan_cnt if option else left
+                    R = total - L
+                    score = (L.sum() * self._impurity(L)
+                             + R.sum() * self._impurity(R)) / n
+                    if f_best is None or score < f_best[0]:
+                        f_best = (score, pos, option)
+            if f_best is not None and (best is None or f_best[0] < best[0]):
+                best = (f_best[0], f, fi, f_best[1], f_best[2], order, col, has_nan)
+        if best is None:
+            return None
+        score, f, fi, pos, option, order, col, has_nan = best
+        gain = parent - score
+        if gain <= 1e-12:
+            return None
+        lo, hi = col[order[pos]], col[order[pos + 1]]
+        thr = 0.5 * (lo + hi)
+        if not (lo <= thr < hi):
+            thr = lo
+        if has_nan:
+            nan_left = bool(option)
+        else:                                             # unseen NaN -> bigger child
+            n_left = pos + 1
+            nan_left = n_left >= n - n_left
+        return int(f), float(thr), nan_left, float(gain)
 
     def predict(self, X):
-        X = np.asarray(X, dtype=float)
-        out = []
-        for x in X:                                  # one row at a time
-            node = self.root
-            while node.label is None:
-                node = node.left if x[node.feature] == 1 else node.right
-            out.append(node.label)
-        return self.classes_[np.array(out)]
+        X = self._check_predict_input(X)
+        nd = self._nodes
+        out = np.empty(X.shape[0], dtype=np.intp)
+        for i, x in enumerate(X):                         # one row at a time
+            node = 0
+            while nd["feature"][node] >= 0:
+                v = x[nd["feature"][node]]
+                left = nd["nan_left"][node] if np.isnan(v) else v <= nd["threshold"][node]
+                node = nd["left"][node] if left else nd["right"][node]
+            out[i] = nd["counts"][node].argmax()
+        return self.classes_[out]
 
 
-# ---------------------------------------------------------------------------
+def welford_per_sample(X):
+    """Running mean and (population) variance, one row at a time. Returns (mean, var)."""
+    X = np.asarray(X, dtype=float)
+    n, mean, m2 = 0, np.zeros(X.shape[1]), np.zeros(X.shape[1])
+    for row in X:
+        n += 1
+        delta = row - mean
+        mean = mean + delta / n
+        m2 = m2 + delta * (row - mean)
+    return mean, m2 / n
+
+
+def confusion_per_sample(y_true, y_pred, n_classes):
+    """Confusion matrix (actual rows, predicted columns) built one pair at a time."""
+    out = np.zeros((n_classes, n_classes), dtype=int)
+    for t, p in zip(y_true, y_pred):
+        out[t, p] += 1
+    return out
+
 
 def make_stream(n, n_features=20, seed=0, drift=False):
     """Yes/no features; label = f0 AND f1 with 8% noise (flips halfway if drift)."""

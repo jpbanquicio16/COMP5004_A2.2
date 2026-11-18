@@ -31,23 +31,23 @@ def _as_1d(x,name: str = "x") -> np.ndarray:
     return arr
 
 def _as_index(value, name: str) -> int:
-    """Accept Python/NumPy integer indices, excluding booleans and floats."""
-    if isinstance(value, (bool, np.bool_)):
-        raise TypeError(f"{name} must be an integer, got {type(value).__name__}")
-    try:
-        return operator.index(value)
-    except TypeError:
-        raise TypeError(f"{name} must be an integer, got {type(value).__name__}") from None
+    """Accept exact Python ints only (no bool, NumPy integers, floats or strings)."""
+    if type(value) is not int:
+        raise TypeError(f"{name} must be a Python int, got {type(value).__name__}")
+    return value
 
 
-def _check_k(k: int, n: int, *, allow_n: bool = True) -> int:
-    """Validate 0 <= k <= n (or k < n when allow_n=False)."""
+def _check_k(k: int, n: int, *, allow_zero: bool = True) -> int:
+    """Validate k as a Python int in 0 <= k <= n (or 0 <= k < n when allow_zero=False).
+
+    ``allow_zero=True`` is the inclusive-upper-bound mode (k may equal n);
+    ``False`` is the exclusive mode (k must be < n).
+    """
     k = _as_index(k, "k")
-    if k < 0 or (k > n if allow_n else k >= n):
-        comparison = "<=" if allow_n else "<"
+    if k < 0 or (k > n if allow_zero else k >= n):
+        comparison = "<=" if allow_zero else "<"
         raise ValueError(f"k must satisfy 0 <= k {comparison} {n}, got {k}")
     return k
-        
 
 
 def _check_axis(axis: int, ndim: int) -> int: 
@@ -286,7 +286,7 @@ def quickselect(x, k: int, *, rng=None):
     Time O(n) expected, O(n^2) worst case. Space O(n) for the partitions.
     """
     arr = _as_1d(x)
-    k = _check_k(k, arr.size, allow_n=False)
+    k = _check_k(k, arr.size, allow_zero=False)
     if np.issubdtype(arr.dtype, np.inexact) and np.isnan(arr).any():
         raise ValueError("x must not contain NaN")
 
