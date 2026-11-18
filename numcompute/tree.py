@@ -30,15 +30,43 @@ Example
 ...     tree.partial_fit(X_chunk, y_chunk)
 """
 
+from typing import NamedTuple
+
 import numpy as np
 
-__all__ = ["DecisionTreeClassifier", "NotFittedError", "gini", "entropy"]
+__all__ = ["DecisionTreeClassifier", "NotFittedError", "TreeArrays", "gini", "entropy"]
 
 
 class NotFittedError(ValueError):
     """predict/score called before the tree has been trained."""
 
 _EPS = 1e-12
+
+
+class TreeArrays(NamedTuple):
+    """Read-only node arrays of a trained tree (node 0 is the root).
+
+    feature   (n_nodes,)    split feature index, -1 for a leaf
+    threshold (n_nodes,)    split threshold (go left if value <= threshold), NaN for a leaf
+    nan_left  (n_nodes,)    True if NaN values go to the left child
+    left      (n_nodes,)    left child index, -1 for a leaf
+    right     (n_nodes,)    right child index, -1 for a leaf
+    counts    (n_nodes, k)  training samples of each class (columns follow ``classes_``)
+    """
+    feature: np.ndarray
+    threshold: np.ndarray
+    nan_left: np.ndarray
+    left: np.ndarray
+    right: np.ndarray
+    counts: np.ndarray
+
+    @property
+    def n_nodes(self):
+        return len(self.feature)
+
+    @property
+    def is_leaf(self):
+        return self.feature < 0
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +167,10 @@ class DecisionTreeClassifier:
         self.n_features_in_ = None
         self.classes_ = None
         self.n_retrains_ = 0
-        self._nodes = None                      
+        self._nodes = None
+        # cap on the (n-1, 2, F, k) split-scoring tensor; features are scored in
+        # blocks so that it never exceeds this many cells (memory guard)
+        self.max_split_cells = 4_000_000
 
     # Helpers
     @staticmethod
@@ -180,6 +211,21 @@ class DecisionTreeClassifier:
 
     def _best_split(self, X, yi, k, feats):
         """Best (feature, threshold, nan_left, gain) over ``feats`` or None.
+
+        Features are scored in blocks of at most ``max_split_cells`` tensor cells;
+        on equal gain the earlier feature wins, so blocking never changes the tree.
+        """
+        per_feature = max(1, 2 * (yi.shape[0] - 1) * k)
+        block = max(1, int(self.max_split_cells) // per_feature)
+        best = None
+        for start in range(0, len(feats), block):
+            cand = self._best_split_block(X, yi, k, feats[start:start + block])
+            if cand is not None and (best is None or cand[3] > best[3]):
+                best = cand
+        return best
+
+    def _best_split_block(self, X, yi, k, feats):
+        """Best split over one block of ``feats`` (see ``_best_split``).
 
         X : (n, n_features) float, yi : (n,) class indices in [0, k).
         All candidate thresholds of all candidate features are scored at once
@@ -238,8 +284,7 @@ class DecisionTreeClassifier:
             nan_left = n_left >= (n - int(isnan[:, fi].sum())) - n_left
         return int(feats[fi]), float(thr), nan_left, float(gain)
 
-    # -- tree construction -------------------------------------------------
-
+    # tree construction
     def _build(self, X, yi, k, depth, rng):
         counts = np.bincount(yi, minlength=k).astype(float)
         node = len(self._feature)
@@ -274,7 +319,7 @@ class DecisionTreeClassifier:
         self._right[node] = self._build(X[~go_left], yi[~go_left], k, depth + 1, rng)
         return node
 
-    # -- public API -------------------------------------------------------
+    # public api
 
     def fit(self, X, y):
         """Train a new tree from scratch on (X, y). Clears the stream buffer."""
@@ -300,6 +345,9 @@ class DecisionTreeClassifier:
             "right": np.array(self._right, dtype=np.intp),
             "counts": np.vstack(self._counts),
         }
+        for a in self._nodes.values():
+            a.setflags(write=False)
+        self._tree_view = TreeArrays(**self._nodes)
         del self._feature, self._threshold, self._nan_left
         del self._left, self._right, self._counts
         self.classes_ = classes
@@ -384,6 +432,13 @@ class DecisionTreeClassifier:
         if X.shape[0] == 0:
             return 0.0
         return float(np.mean(self.predict(X) == y))
+
+    @property
+    def tree_(self):
+        """Read-only :class:`TreeArrays` of the most recently trained tree."""
+        if self._nodes is None:
+            raise NotFittedError("tree has not been trained yet")
+        return self._tree_view
 
     @property
     def is_fitted(self):
