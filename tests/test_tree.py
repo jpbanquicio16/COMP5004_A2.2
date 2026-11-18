@@ -6,7 +6,7 @@ Features are yes/no (1/0) columns, as in the course tree.
 import numpy as np
 import pytest
 
-from numcompute.tree import DecisionTreeClassifier, NotFittedError, TreeArrays, entropy, gini
+from numcompute_stream.tree import DecisionTreeClassifier, NotFittedError, TreeArrays, entropy, gini
 
 # the course's twelve students: submitted, attended, study_group -> passed
 STUDENTS = np.array([
@@ -428,8 +428,8 @@ def test_new_class_appears_in_later_retrain():
 
 def test_works_inside_pipeline():
     try:
-        from numcompute.pipeline import Pipeline
-        from numcompute.preprocessing import MinMaxScaler
+        from numcompute_stream.pipeline import Pipeline
+        from numcompute_stream.preprocessing import MinMaxScaler
     except (ImportError, SyntaxError) as exc:
         pytest.skip(f"pipeline/preprocessing not importable: {exc}")
     X, y = make_data()

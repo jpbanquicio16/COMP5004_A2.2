@@ -26,8 +26,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-import numcompute.rank as ranking
-import numcompute.sort_search as ss
+import numcompute_stream.rank as ranking
+import numcompute_stream.sort_search as ss
 
 DISTRIBUTIONS = ("random", "ascending", "descending", "duplicates", "constant")
 METHODS = ("average", "min", "max", "dense", "ordinal")

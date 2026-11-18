@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from numcompute.preprocessing import (
+from numcompute_stream.preprocessing import (
     Imputer,
     MinMaxScaler,
     NotFittedError,
@@ -206,7 +206,7 @@ class TestSimpleImputer(unittest.TestCase):
         with self.assertRaises(ValueError):
             SimpleImputer(fill_value=np.nan)
         with self.assertRaises(TypeError):
-            SimpleImputer(fill_value="x")
+            SimpleImputer(fill_value="x")  # pyright: ignore[reportArgumentType]
 
     def test_all_nan_column_with_mean_raises(self):
         with self.assertRaises(ValueError):
@@ -425,7 +425,7 @@ class TestRemainingBranches(unittest.TestCase):
             OneHotEncoder().fit(np.empty((3, 0)))
 
     def test_base_class_methods_must_be_overridden(self):
-        from numcompute.preprocessing import _BaseTransformer
+        from numcompute_stream.preprocessing import _BaseTransformer
         base = _BaseTransformer()
         with self.assertRaises(NotImplementedError):
             base.fit(np.zeros((2, 2)))

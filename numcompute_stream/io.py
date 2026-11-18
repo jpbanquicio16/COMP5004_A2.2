@@ -1,5 +1,5 @@
 """
-numcompute.io
+numcompute_stream.io
 
 Loading and saving CSV files as numpy arrays.
 

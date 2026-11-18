@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from numcompute.utils import (
+from numcompute_stream.utils import (
     batch_indices,
     euclidean_distance,
     k_nearest,

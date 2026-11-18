@@ -1,5 +1,5 @@
 """
-numcompute.metrics
+numcompute_stream.metrics
 
 Classification and regression metrics, numpy only.
 

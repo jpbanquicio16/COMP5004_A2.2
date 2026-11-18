@@ -9,7 +9,7 @@ import numpy as np  # noqa: E402
 import pytest  # noqa: E402
 from matplotlib.axes import Axes  # noqa: E402
 
-from numcompute.visualise import (  # noqa: E402
+from numcompute_stream.visualise import (  # noqa: E402
     compare_models,
     plot_metric_over_time,
     plot_predictions_vs_ground_truth,

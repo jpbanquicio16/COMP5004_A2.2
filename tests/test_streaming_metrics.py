@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from numcompute import metrics as m
+from numcompute_stream import metrics as m
 
 CHUNKINGS = [1, 3, 17]
 

@@ -1,5 +1,5 @@
 """
-numcompute.stats
+numcompute_stream.stats
 
 Descriptive statistics and a streaming mean/variance, numpy only.
 

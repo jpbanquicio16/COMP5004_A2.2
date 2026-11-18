@@ -13,7 +13,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from numcompute.tree import DecisionTreeClassifier
+from numcompute_stream.tree import DecisionTreeClassifier
 
 
 # ---------------------------------------------------------------------------

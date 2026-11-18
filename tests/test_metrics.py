@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from numcompute import metrics as m
+from numcompute_stream import metrics as m
 
 CLASSIFIERS = (m.accuracy, m.precision, m.recall, m.f1)
 

@@ -4,8 +4,8 @@ StreamingStats (Welford / Chan merge), update_stats and StreamingHistogram."""
 import numpy as np
 import pytest
 
-from numcompute import stats as s
-from numcompute.stats import StreamingHistogram, StreamingStats, update_stats
+from numcompute_stream import stats as s
+from numcompute_stream.stats import StreamingHistogram, StreamingStats, update_stats
 
 CHUNKINGS = [1, 3, 17]
 

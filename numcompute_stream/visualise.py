@@ -1,5 +1,5 @@
 """
-numcompute.visualise
+numcompute_stream.visualise
 
 Reusable matplotlib plots for streaming results (scripts, notebooks, logs).
 

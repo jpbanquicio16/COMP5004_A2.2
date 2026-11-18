@@ -13,7 +13,7 @@ import numpy as np
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from numcompute.preprocessing import (  
+from numcompute_stream.preprocessing import (  
     MinMaxScaler,
     OneHotEncoder,
     SimpleImputer,

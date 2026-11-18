@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from numcompute import stats as s
+from numcompute_stream import stats as s
 
 REDUCTIONS = ('mean', 'median', 'var', 'std', 'min', 'max')
 

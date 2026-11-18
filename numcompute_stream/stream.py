@@ -1,5 +1,5 @@
 """
-numcompute.stream
+numcompute_stream.stream
 
 Prequential ("test-then-train") training for streaming models.
 
@@ -16,7 +16,7 @@ when the final model's n_retrains_ goes up. Until the first retrain the model
 cannot predict, so those chunks score NaN (warm-up).
 
 Progress is reported through the standard logging module (logger
-"numcompute.stream"); call logging.basicConfig(level=logging.INFO) to see it.
+"numcompute_stream.stream"); call logging.basicConfig(level=logging.INFO) to see it.
 """
 
 import logging
@@ -252,7 +252,7 @@ class StreamTrainer:
 
     def to_csv(self, path):
         """Write history_ as CSV (header row, then one row per chunk).
-        Readable back with numcompute.io.load_csv(path, skip_header=1)."""
+        Readable back with numcompute_stream.io.load_csv(path, skip_header=1)."""
         hist = self.history_
         table = np.column_stack([hist[k].astype(float) for k in HISTORY_KEYS]) \
             if self.n_chunks_ else np.zeros((0, len(HISTORY_KEYS)))

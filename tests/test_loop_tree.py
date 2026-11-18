@@ -14,9 +14,9 @@ from tree_benchmarks import (  # noqa: E402
     welford_per_sample,
 )
 
-from numcompute.metrics import confusion_matrix  # noqa: E402
-from numcompute.stats import StreamingStats  # noqa: E402
-from numcompute.tree import DecisionTreeClassifier  # noqa: E402
+from numcompute_stream.metrics import confusion_matrix  # noqa: E402
+from numcompute_stream.stats import StreamingStats  # noqa: E402
+from numcompute_stream.tree import DecisionTreeClassifier  # noqa: E402
 
 
 def datasets():

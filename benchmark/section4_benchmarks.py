@@ -15,9 +15,9 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from numcompute import optim, utils
-from numcompute.pipeline import Pipeline
-from numcompute.preprocessing import MinMaxScaler, SimpleImputer, StandardScaler
+from numcompute_stream import optim, utils
+from numcompute_stream.pipeline import Pipeline
+from numcompute_stream.preprocessing import MinMaxScaler, SimpleImputer, StandardScaler
 
 
 # ---------------------------------------------------------------------------

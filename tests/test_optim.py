@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from numcompute.optim import grad, jacobian
+from numcompute_stream.optim import grad, jacobian
 
 
 # functions where we know the exact answer

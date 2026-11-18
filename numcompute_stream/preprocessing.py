@@ -1,5 +1,5 @@
 """
-numcompute.preprocessing
+numcompute_stream.preprocessing
 
 Feature scaling, encoding and imputation.
 
@@ -186,7 +186,7 @@ class StandardScaler(_BaseTransformer):
         A column whose std is tiny next to its mean (std <= 10 eps |mean|)
         counts as constant: scale 1 and centred on its minimum, so it maps to 0.
 
-        Streaming uses numcompute.stats.StreamingStats (Welford / Chan merge),
+        Streaming uses numcompute_stream.stats.StreamingStats (Welford / Chan merge),
         so partial_fit over any chunking gives the same mean_ and scale_ as
         fit on all the data.
 

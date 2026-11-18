@@ -6,12 +6,12 @@ import logging
 import numpy as np
 import pytest
 
-from numcompute import metrics as m
-from numcompute.io import load_csv
-from numcompute.pipeline import Pipeline
-from numcompute.preprocessing import OneHotEncoder, SimpleImputer, StandardScaler
-from numcompute.stream import HISTORY_KEYS, StreamTrainer, model_nbytes
-from numcompute.tree import DecisionTreeClassifier, NotFittedError
+from numcompute_stream import metrics as m
+from numcompute_stream.io import load_csv
+from numcompute_stream.pipeline import Pipeline
+from numcompute_stream.preprocessing import OneHotEncoder, SimpleImputer, StandardScaler
+from numcompute_stream.stream import HISTORY_KEYS, StreamTrainer, model_nbytes
+from numcompute_stream.tree import DecisionTreeClassifier, NotFittedError
 
 
 def make_stream(n=2000, seed=0, drift=True):

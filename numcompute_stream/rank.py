@@ -1,5 +1,5 @@
 """
-numcompute.rank
+numcompute_stream.rank
 ===============
 
 Ranking with tie handling, and percentiles.
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from numcompute.sort_search import _check_axis, argsort
+from numcompute_stream.sort_search import _check_axis, argsort
 
 __all__ = [
     "rank",

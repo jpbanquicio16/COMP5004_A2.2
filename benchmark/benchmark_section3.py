@@ -9,7 +9,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from numcompute import stats, metrics
+from numcompute_stream import stats, metrics
 
 
 def mean_loop(values):

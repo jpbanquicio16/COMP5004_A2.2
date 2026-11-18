@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from numcompute.io import iter_csv_chunks, load_csv
+from numcompute_stream.io import iter_csv_chunks, load_csv
 
 
 class _FileTestCase(unittest.TestCase):
